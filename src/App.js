@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useReducer } from 'react';
 import { Howler, Howl } from 'howler';
 import './App.css';
 
@@ -24,8 +24,50 @@ const hat = new Howl({
 
 const snare = new Howl({ src: ['snare.wav'] });
 
+function useAnimationFrame(callback, interval, paused) {
+  const requestRef = React.useRef();
+  const previousTimeRef = React.useRef();
+
+  const animate = time => {
+    if (previousTimeRef.current != undefined) {
+      const deltaTime = time - previousTimeRef.current;
+      if (deltaTime >= interval) {
+        if (!paused) {
+          previousTimeRef.current = undefined;
+          callback(deltaTime);
+        }
+        previousTimeRef.current = time;
+      }
+    } else {
+      previousTimeRef.current = time;
+    }
+    requestRef.current = requestAnimationFrame(animate);
+  };
+
+  React.useEffect(() => {
+    requestRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(requestRef.current);
+  }, [paused, interval]);
+}
+
+function stepReducer(state, action) {
+  switch (action.type) {
+    case 'play':
+      return { ...state, isPlaying: true };
+    case 'pause':
+      return { ...state, isPlaying: false, step: 1 };
+    case 'nextStep':
+      return { ...state, step: state.step === 16 ? 1 : state.step + 1 };
+    default:
+      throw new Error(`${action.type} unknown`);
+  }
+}
+
 function App() {
-  const [step, setStep] = useState(1);
+  const [state, dispatch] = useReducer(stepReducer, {
+    step: 1,
+    isPlaying: false
+  });
   const [kickSequence, setKickSequence] = useState([
     0,
     0,
@@ -62,51 +104,48 @@ function App() {
     0,
     0
   ]);
+  const beatLength = ((60 / 120) * 1000) / 4;
 
-  const requestRef = React.useRef();
-  const previousTimeRef = React.useRef();
+  useAnimationFrame(
+    _deltaTime => {
+      dispatch({ type: 'nextStep' });
+    },
+    beatLength,
+    !state.isPlaying
+  );
 
-  const loop = time => {
-    if (previousTimeRef.current != undefined) {
-      const delta = time - previousTimeRef.current;
-      const beatLength = ((60 / 120) * 1000) / 4;
-
-      if (delta >= beatLength) {
-        setStep(prevStep => (prevStep === 16 ? 1 : prevStep + 1));
-        previousTimeRef.current = time;
-      }
-    } else {
-      previousTimeRef.current = time;
+  useEffect(() => {
+    if (!state.isPlaying) {
+      return;
     }
-
-    requestRef.current = requestAnimationFrame(loop);
-  };
-
-  useEffect(() => {
-    requestRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(requestRef.current);
-  }, []);
-
-  useEffect(() => {
-    if (kickSequence[step - 1] === 1) {
+    if (kickSequence[state.step - 1] === 1) {
       kick.play();
     }
-    if (snareSequence[step - 1] === 1) {
+    if (snareSequence[state.step - 1] === 1) {
       snare.play();
     }
     // hat.play();
-  }, [step]);
+  }, [state.step, state.isPlaying]);
 
   return (
     <div className="App">
       <header className="App-header">
-        <p>{step}</p>
+        <button
+          onClick={() => {
+            state.isPlaying
+              ? dispatch({ type: 'pause' })
+              : dispatch({ type: 'play' });
+          }}
+        >
+          {state.isPlaying ? 'Stop' : 'Play'}
+        </button>
+        <p>{state.step}</p>
         <div style={{ display: 'flex' }}>
-          {kickSequence.map((state, idx) => (
+          {kickSequence.map((val, idx) => (
             <button
               key={`kick-${idx}`}
               style={{
-                backgroundColor: step - 1 === idx ? 'red' : '#eee',
+                backgroundColor: state.step - 1 === idx ? 'red' : '#eee',
                 width: 40,
                 height: 40,
                 border: 0,
@@ -119,16 +158,16 @@ function App() {
                 );
               }}
             >
-              {state}
+              {val}
             </button>
           ))}
         </div>
         <div style={{ display: 'flex' }}>
-          {snareSequence.map((state, idx) => (
+          {snareSequence.map((val, idx) => (
             <button
               key={`kick-${idx}`}
               style={{
-                backgroundColor: step - 1 === idx ? 'red' : '#eee',
+                backgroundColor: state.step - 1 === idx ? 'red' : '#eee',
                 width: 40,
                 height: 40,
                 border: 0,
@@ -141,7 +180,7 @@ function App() {
                 );
               }}
             >
-              {state}
+              {val}
             </button>
           ))}
         </div>
