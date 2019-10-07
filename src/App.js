@@ -139,12 +139,13 @@ function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
     <div style={{ display: 'flex' }}>
       <div
         style={{
-          width: '100px',
-          fontSize: '14px',
+          width: '140px',
+          fontSize: '12px',
           fontWeight: 'bold',
           textAlign: 'left',
           height: 40,
-          lineHeight: '40px'
+          lineHeight: '40px',
+          textTransform: 'uppercase'
         }}
       >
         {label}
