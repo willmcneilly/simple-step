@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useReducer, useLayoutEffect } from 'react';
 import { Howler, Howl } from 'howler';
+import { IoIosPlay, IoIosSquare } from 'react-icons/io';
 import './App.css';
 
 const data = {
@@ -102,15 +103,23 @@ function App() {
     <div className="App">
       <header className="App-header">
         <button
+          style={{
+            backgroundColor: 'transparent',
+            color: '#eee',
+            border: 0,
+            padding: '20px 20px 10px 20px',
+            fontSize: '60px',
+            margin: 0,
+            marginBottom: '40px'
+          }}
           onClick={() => {
             state.isPlaying
               ? dispatch({ type: 'pause' })
               : dispatch({ type: 'play' });
           }}
         >
-          {state.isPlaying ? 'Stop' : 'Play'}
+          {state.isPlaying ? <IoIosSquare /> : <IoIosPlay />}
         </button>
-        <p>{state.step}</p>
         <SequenceArray
           label="Kick"
           sequence={kickSequence}
@@ -158,7 +167,7 @@ function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
         onMouseLeave={_ => setMouseDown(false)}
       >
         {sequence.map((val, idx) => (
-          <div
+          <button
             onMouseDown={_ => {
               setSequence(seq =>
                 Object.assign([], seq, { [idx]: seq[idx] ? 0 : 1 })
@@ -183,7 +192,7 @@ function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
             }}
           >
             {val}
-          </div>
+          </button>
         ))}
       </div>
     </div>
