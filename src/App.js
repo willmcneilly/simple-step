@@ -135,6 +135,7 @@ function App() {
 }
 
 function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
+  const [mouseDown, setMouseDown] = useState(false);
   return (
     <div style={{ display: 'flex' }}>
       <div
@@ -150,9 +151,26 @@ function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
       >
         {label}
       </div>
-      <div style={{ display: 'flex', marginBottom: '5px' }}>
+      <div
+        style={{ display: 'flex', marginBottom: '5px' }}
+        onMouseDown={e => setMouseDown(true)}
+        onMouseUp={_ => setMouseDown(false)}
+        onMouseLeave={_ => setMouseDown(false)}
+      >
         {sequence.map((val, idx) => (
-          <button
+          <div
+            onMouseDown={_ => {
+              setSequence(seq =>
+                Object.assign([], seq, { [idx]: seq[idx] ? 0 : 1 })
+              );
+            }}
+            onMouseEnter={_ => {
+              if (mouseDown) {
+                setSequence(seq =>
+                  Object.assign([], seq, { [idx]: seq[idx] ? 0 : 1 })
+                );
+              }
+            }}
             key={`kick-${idx}`}
             style={{
               backgroundColor: val ? 'magenta' : '#650065',
@@ -163,14 +181,9 @@ function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
               textIndent: '-9999px',
               marginRight: (idx + 1) % grouping === 0 ? '5px' : '1px'
             }}
-            onClick={() => {
-              setSequence(seq =>
-                Object.assign([], seq, { [idx]: seq[idx] ? 0 : 1 })
-              );
-            }}
           >
             {val}
-          </button>
+          </div>
         ))}
       </div>
     </div>
