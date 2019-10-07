@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useReducer } from 'react';
+import React, { useEffect, useState, useReducer, useLayoutEffect } from 'react';
 import { Howler, Howl } from 'howler';
 import './App.css';
 
@@ -44,7 +44,7 @@ function useAnimationFrame(callback, interval, paused) {
     requestRef.current = requestAnimationFrame(animate);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(requestRef.current);
   }, [paused, interval]);
@@ -63,47 +63,16 @@ function stepReducer(state, action) {
   }
 }
 
+const initialSequence = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
 function App() {
   const [state, dispatch] = useReducer(stepReducer, {
     step: 1,
     isPlaying: false
   });
-  const [kickSequence, setKickSequence] = useState([
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-  ]);
-  const [snareSequence, setSnareSequence] = useState([
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0
-  ]);
+  const [kickSequence, setKickSequence] = useState(initialSequence);
+  const [snareSequence, setSnareSequence] = useState(initialSequence);
+  const [hatSequence, setHatSequence] = useState(initialSequence);
   const beatLength = ((60 / 120) * 1000) / 4;
 
   useAnimationFrame(
@@ -114,7 +83,7 @@ function App() {
     !state.isPlaying
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!state.isPlaying) {
       return;
     }
@@ -124,7 +93,9 @@ function App() {
     if (snareSequence[state.step - 1] === 1) {
       snare.play();
     }
-    // hat.play();
+    if (hatSequence[state.step - 1] === 1) {
+      hat.play();
+    }
   }, [state.step, state.isPlaying]);
 
   return (
@@ -140,51 +111,67 @@ function App() {
           {state.isPlaying ? 'Stop' : 'Play'}
         </button>
         <p>{state.step}</p>
-        <div style={{ display: 'flex' }}>
-          {kickSequence.map((val, idx) => (
-            <button
-              key={`kick-${idx}`}
-              style={{
-                backgroundColor: state.step - 1 === idx ? 'red' : '#eee',
-                width: 40,
-                height: 40,
-                border: 0,
-                margin: 0.5,
-                borderRadius: 3
-              }}
-              onClick={() => {
-                setKickSequence(seq =>
-                  Object.assign([], seq, { [idx]: seq[idx] ? 0 : 1 })
-                );
-              }}
-            >
-              {val}
-            </button>
-          ))}
-        </div>
-        <div style={{ display: 'flex' }}>
-          {snareSequence.map((val, idx) => (
-            <button
-              key={`kick-${idx}`}
-              style={{
-                backgroundColor: state.step - 1 === idx ? 'red' : '#eee',
-                width: 40,
-                height: 40,
-                border: 0,
-                margin: 0.5,
-                borderRadius: 3
-              }}
-              onClick={() => {
-                setSnareSequence(seq =>
-                  Object.assign([], seq, { [idx]: seq[idx] ? 0 : 1 })
-                );
-              }}
-            >
-              {val}
-            </button>
-          ))}
-        </div>
+        <SequenceArray
+          label="Kick"
+          sequence={kickSequence}
+          setSequence={setKickSequence}
+          step={state.step}
+        />
+        <SequenceArray
+          label="Snare"
+          sequence={snareSequence}
+          setSequence={setSnareSequence}
+          step={state.step}
+        />
+        <SequenceArray
+          label="Closed Hat"
+          sequence={hatSequence}
+          setSequence={setHatSequence}
+          step={state.step}
+        />
       </header>
+    </div>
+  );
+}
+
+function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
+  return (
+    <div style={{ display: 'flex' }}>
+      <div
+        style={{
+          width: '100px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          textAlign: 'left',
+          height: 40,
+          lineHeight: '40px'
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ display: 'flex', marginBottom: '5px' }}>
+        {sequence.map((val, idx) => (
+          <button
+            key={`kick-${idx}`}
+            style={{
+              backgroundColor: val ? 'magenta' : '#650065',
+              width: 40,
+              height: 40,
+              border: step - 1 === idx ? '2px solid white' : 'none',
+              borderRadius: 3,
+              textIndent: '-9999px',
+              marginRight: (idx + 1) % grouping === 0 ? '5px' : '1px'
+            }}
+            onClick={() => {
+              setSequence(seq =>
+                Object.assign([], seq, { [idx]: seq[idx] ? 0 : 1 })
+              );
+            }}
+          >
+            {val}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
