@@ -59,6 +59,8 @@ function stepReducer(state, action) {
       return { ...state, isPlaying: false, step: 1 };
     case 'nextStep':
       return { ...state, step: state.step === 16 ? 1 : state.step + 1 };
+    case 'setBPM':
+      return { ...state, bpm: action.bpm };
     default:
       throw new Error(`${action.type} unknown`);
   }
@@ -69,12 +71,13 @@ const initialSequence = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 function App() {
   const [state, dispatch] = useReducer(stepReducer, {
     step: 1,
+    bpm: 120,
     isPlaying: false
   });
   const [kickSequence, setKickSequence] = useState(initialSequence);
   const [snareSequence, setSnareSequence] = useState(initialSequence);
   const [hatSequence, setHatSequence] = useState(initialSequence);
-  const beatLength = ((60 / 120) * 1000) / 4;
+  const beatLength = ((60 / state.bpm) * 1000) / 4;
 
   useAnimationFrame(
     _deltaTime => {
@@ -138,6 +141,22 @@ function App() {
           setSequence={setHatSequence}
           step={state.step}
         />
+        <label
+          style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '40px' }}
+        >
+          BPM
+          <input
+            onChange={e => dispatch({ type: 'setBPM', bpm: e.target.value })}
+            type="number"
+            value={state.bpm}
+            style={{
+              marginLeft: '5px',
+              width: '50px',
+              fontSize: '14px',
+              fontWeight: 'bold'
+            }}
+          />
+        </label>
       </header>
     </div>
   );
