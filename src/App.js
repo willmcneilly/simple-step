@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useReducer, useLayoutEffect } from 'react';
-import { Howler, Howl } from 'howler';
+import { Howl } from 'howler';
 import { IoIosPlay, IoIosSquare } from 'react-icons/io';
 import './App.css';
 
@@ -50,6 +50,8 @@ function stepReducer(state, action) {
       return { ...state, step: state.step === 16 ? 1 : state.step + 1 };
     case 'setBPM':
       return { ...state, bpm: action.bpm };
+    case 'setStepLength':
+      return { ...state, stepLength: action.stepLength };
     case 'updateSequenceAtIndex':
       return {
         ...state,
@@ -83,6 +85,7 @@ function App() {
     step: 1,
     bpm: 120,
     isPlaying: false,
+    stepLength: 8,
     sequenceArrayOrder: [
       'kick',
       'snare',
@@ -125,7 +128,7 @@ function App() {
       }
     }
   });
-  const beatLength = ((60 / state.bpm) * 1000) / 4;
+  const beatLength = ((60 / state.bpm) * 1000) / state.stepLength;
 
   useAnimationFrame(
     _deltaTime => {
@@ -159,6 +162,7 @@ function App() {
               label={sequenceData.label}
               step={state.step}
               sequence={sequenceData.sequence}
+              grouping={state.stepLength}
               setSequence={idx =>
                 dispatch({
                   type: 'updateSequenceAtIndex',
@@ -169,7 +173,13 @@ function App() {
             />
           );
         })}
-        <BPMAdjustment bpm={state.bpm} dispatch={dispatch} />
+        <div style={{ display: 'flex', marginTop: '40px' }}>
+          <BPMAdjustment bpm={state.bpm} dispatch={dispatch} />
+          <StepLengthAdjustment
+            dispatch={dispatch}
+            stepLength={state.stepLength}
+          />
+        </div>
       </header>
     </div>
   );
@@ -194,7 +204,7 @@ function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
       </div>
       <div
         style={{ display: 'flex', marginBottom: '5px' }}
-        onMouseDown={e => setMouseDown(true)}
+        onMouseDown={_ => setMouseDown(true)}
         onMouseUp={_ => setMouseDown(false)}
         onMouseLeave={_ => setMouseDown(false)}
       >
@@ -250,7 +260,7 @@ function PlayButton({ isPlaying, dispatch }) {
 
 function BPMAdjustment({ dispatch, bpm }) {
   return (
-    <label style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '40px' }}>
+    <label style={{ fontSize: '12px', fontWeight: 'bold' }}>
       BPM
       <input
         onChange={e => dispatch({ type: 'setBPM', bpm: e.target.value })}
@@ -263,6 +273,29 @@ function BPMAdjustment({ dispatch, bpm }) {
           fontWeight: 'bold'
         }}
       />
+    </label>
+  );
+}
+
+function StepLengthAdjustment({ stepLength, dispatch }) {
+  return (
+    <label style={{ fontSize: '12px', fontWeight: 'bold', marginLeft: '20px' }}>
+      Step Length
+      <select
+        value={stepLength}
+        onChange={e =>
+          dispatch({
+            type: 'setStepLength',
+            stepLength: parseInt(e.target.value)
+          })
+        }
+      >
+        <option value="2">1/8 Note</option>
+        <option value="3">1/8 Note Triplet</option>
+        <option value="4">1/16 Note</option>
+        <option value="6">1/16 Note Triplet</option>
+        <option value="8">1/32 Note</option>
+      </select>
     </label>
   );
 }
