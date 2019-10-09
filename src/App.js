@@ -18,12 +18,13 @@ const data = {
 const kick = new Howl({
   src: ['kick.wav']
 });
-
 const hat = new Howl({
   src: ['hat.wav']
 });
-
 const snare = new Howl({ src: ['snare.wav'] });
+const snareRim = new Howl({ src: ['snare-rim.wav'] });
+const floorTom = new Howl({ src: ['floor-tom.wav'] });
+const crash = new Howl({ src: ['crash.wav'] });
 
 function useAnimationFrame(callback, interval, paused) {
   const requestRef = React.useRef();
@@ -76,7 +77,11 @@ function App() {
   });
   const [kickSequence, setKickSequence] = useState(initialSequence);
   const [snareSequence, setSnareSequence] = useState(initialSequence);
+  const [snareRimSequence, setSnareRimSequence] = useState(initialSequence);
   const [hatSequence, setHatSequence] = useState(initialSequence);
+  const [crashSequence, setCrashSequence] = useState(initialSequence);
+  const [floorTomSequence, setFloorTomSequence] = useState(initialSequence);
+
   const beatLength = ((60 / state.bpm) * 1000) / 4;
 
   useAnimationFrame(
@@ -97,8 +102,19 @@ function App() {
     if (snareSequence[state.step - 1] === 1) {
       snare.play();
     }
+    if (snareRimSequence[state.step - 1] === 1) {
+      snareRim.play();
+    }
     if (hatSequence[state.step - 1] === 1) {
       hat.play();
+    }
+
+    if (crashSequence[state.step - 1] === 1) {
+      crash.play();
+    }
+
+    if (floorTomSequence[state.step - 1] === 1) {
+      floorTom.play();
     }
   }, [state.step, state.isPlaying]);
 
@@ -136,9 +152,27 @@ function App() {
           step={state.step}
         />
         <SequenceArray
+          label="Snare Rim"
+          sequence={snareRimSequence}
+          setSequence={setSnareRimSequence}
+          step={state.step}
+        />
+        <SequenceArray
           label="Closed Hat"
           sequence={hatSequence}
           setSequence={setHatSequence}
+          step={state.step}
+        />
+        <SequenceArray
+          label="Crash"
+          sequence={crashSequence}
+          setSequence={setCrashSequence}
+          step={state.step}
+        />
+        <SequenceArray
+          label="Floor Tom"
+          sequence={floorTomSequence}
+          setSequence={setFloorTomSequence}
           step={state.step}
         />
         <label
