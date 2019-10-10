@@ -40,6 +40,30 @@ function useAnimationFrame(callback, interval, paused) {
   }, [paused, interval]);
 }
 
+function truncateSequence(sequence, steps) {
+  return sequence.slice(0, steps);
+}
+
+function extendSequence(sequence, steps) {
+  const currentSequenceLength = sequence.length;
+  const firstSequence = truncateSequence(sequence, 16);
+  const extendBy = steps / 16 - currentSequenceLength / 16;
+
+  let newSequenceEnd = [...sequence];
+
+  for (let i = 0; i < extendBy; i++) {
+    newSequenceEnd = [...newSequenceEnd, ...firstSequence];
+  }
+
+  return newSequenceEnd;
+}
+
+function mapSequenceArrayData(data, mapFn) {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, val]) => [key, mapFn(val)])
+  );
+}
+
 function stepReducer(state, action) {
   switch (action.type) {
     case 'play':
@@ -47,11 +71,49 @@ function stepReducer(state, action) {
     case 'pause':
       return { ...state, isPlaying: false, step: 1 };
     case 'nextStep':
-      return { ...state, step: state.step === 16 ? 1 : state.step + 1 };
+      return {
+        ...state,
+        step: state.step === state.steps ? 1 : state.step + 1
+      };
     case 'setBPM':
       return { ...state, bpm: action.bpm };
     case 'setStepLength':
       return { ...state, stepLength: action.stepLength };
+    case 'setSteps': {
+      // are we extending or truncating?
+      const currentSteps = state.steps;
+      let newSequenceArrayData;
+      if (currentSteps > action.steps) {
+        // truncate
+        newSequenceArrayData = mapSequenceArrayData(
+          state.sequenceArrayData,
+          ({ sequence, ...rest }) => {
+            return {
+              ...rest,
+              sequence: truncateSequence(sequence, action.steps)
+            };
+          }
+        );
+      } else {
+        //extend
+        newSequenceArrayData = mapSequenceArrayData(
+          state.sequenceArrayData,
+          ({ sequence, ...rest }) => {
+            return {
+              ...rest,
+              sequence: extendSequence(sequence, action.steps)
+            };
+          }
+        );
+      }
+      return {
+        ...state,
+        steps: action.steps,
+        sequenceArrayData: newSequenceArrayData,
+        step: 1,
+        selectedSequence: 1
+      };
+    }
     case 'updateSequenceAtIndex':
       return {
         ...state,
@@ -73,6 +135,11 @@ function stepReducer(state, action) {
           }
         }
       };
+    case 'setSelectedSequence':
+      return {
+        ...state,
+        selectedSequence: action.selectedSequence
+      };
     default:
       throw new Error(`${action.type} unknown`);
   }
@@ -83,9 +150,11 @@ const initialSequence = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 function App() {
   const [state, dispatch] = useReducer(stepReducer, {
     step: 1,
+    stepLength: 4,
+    steps: 16,
     bpm: 120,
     isPlaying: false,
-    stepLength: 8,
+    selectedSequence: 1,
     sequenceArrayOrder: [
       'kick',
       'snare',
@@ -163,6 +232,7 @@ function App() {
               step={state.step}
               sequence={sequenceData.sequence}
               grouping={state.stepLength}
+              selectedSequence={state.selectedSequence}
               setSequence={idx =>
                 dispatch({
                   type: 'updateSequenceAtIndex',
@@ -173,19 +243,43 @@ function App() {
             />
           );
         })}
+        <div
+          style={{
+            display: 'flex'
+          }}
+        >
+          <SequenceSelection
+            selectedSequence={state.selectedSequence}
+            sequenceData={state.sequenceArrayOrder.map(sequenceId => {
+              return state.sequenceArrayData[sequenceId].sequence;
+            })}
+            steps={state.steps}
+            dispatch={dispatch}
+            step={state.step}
+          />
+        </div>
+
         <div style={{ display: 'flex', marginTop: '40px' }}>
           <BPMAdjustment bpm={state.bpm} dispatch={dispatch} />
           <StepLengthAdjustment
             dispatch={dispatch}
             stepLength={state.stepLength}
           />
+          <StepAdjustment dispatch={dispatch} steps={state.steps} />
         </div>
       </header>
     </div>
   );
 }
 
-function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
+function SequenceArray({
+  sequence,
+  step,
+  setSequence,
+  grouping = 4,
+  label,
+  selectedSequence
+}) {
   const [mouseDown, setMouseDown] = useState(false);
   return (
     <div style={{ display: 'flex' }}>
@@ -208,30 +302,39 @@ function SequenceArray({ sequence, step, setSequence, grouping = 4, label }) {
         onMouseUp={_ => setMouseDown(false)}
         onMouseLeave={_ => setMouseDown(false)}
       >
-        {sequence.map((val, idx) => (
-          <button
-            onMouseDown={_ => {
-              setSequence(idx);
-            }}
-            onMouseEnter={_ => {
-              if (mouseDown) {
-                setSequence(idx);
-              }
-            }}
-            key={`kick-${idx}`}
-            style={{
-              backgroundColor: val ? 'magenta' : '#650065',
-              width: 40,
-              height: 40,
-              border: step - 1 === idx ? '2px solid white' : 'none',
-              borderRadius: 3,
-              textIndent: '-9999px',
-              marginRight: (idx + 1) % grouping === 0 ? '5px' : '1px'
-            }}
-          >
-            {val}
-          </button>
-        ))}
+        {sequence.map((val, idx) => {
+          if (
+            idx >= selectedSequence * 16 - 16 &&
+            idx < selectedSequence * 16
+          ) {
+            return (
+              <button
+                onMouseDown={_ => {
+                  setSequence(idx);
+                }}
+                onMouseEnter={_ => {
+                  if (mouseDown) {
+                    setSequence(idx);
+                  }
+                }}
+                key={`kick-${idx}`}
+                style={{
+                  backgroundColor: val ? 'magenta' : '#650065',
+                  width: 40,
+                  height: 40,
+                  border: step - 1 === idx ? '2px solid white' : 'none',
+                  borderRadius: 3,
+                  textIndent: '-9999px',
+                  marginRight: (idx + 1) % grouping === 0 ? '5px' : '1px'
+                }}
+              >
+                {val}
+              </button>
+            );
+          }
+
+          return null;
+        })}
       </div>
     </div>
   );
@@ -297,6 +400,98 @@ function StepLengthAdjustment({ stepLength, dispatch }) {
         <option value="8">1/32 Note</option>
       </select>
     </label>
+  );
+}
+
+function StepAdjustment({ steps, dispatch }) {
+  return (
+    <label style={{ fontSize: '12px', fontWeight: 'bold', marginLeft: '20px' }}>
+      Steps
+      <select
+        value={steps}
+        onChange={e =>
+          dispatch({
+            type: 'setSteps',
+            steps: parseInt(e.target.value)
+          })
+        }
+      >
+        <option value="16">16</option>
+        <option value="32">32</option>
+        <option value="48">48</option>
+        <option value="64">64</option>
+      </select>
+    </label>
+  );
+}
+
+function SequenceSelection({
+  selectedSequence,
+  steps,
+  step,
+  dispatch,
+  sequenceData
+}) {
+  const sequenceCount = steps / 16;
+
+  if (sequenceCount === 1) {
+    return null;
+  }
+
+  return Array.from(Array(sequenceCount)).map((_, idx) => {
+    const sequences = sequenceData.map(sequenceRow =>
+      sequenceRow.slice(idx * 16, idx * 16 + 16)
+    );
+    return (
+      <SequenceThumbnail
+        key={idx}
+        active={idx + 1 === selectedSequence}
+        step={Math.floor((step - 1) / 16) === idx ? step % 16 || 16 : -1}
+        setAsActive={() =>
+          dispatch({ type: 'setSelectedSequence', selectedSequence: idx + 1 })
+        }
+        sequences={sequences}
+      />
+    );
+  });
+}
+
+function SequenceThumbnail({ active, sequences, step, setAsActive }) {
+  return (
+    <div
+      style={{
+        border: active ? '2px solid white' : 0,
+        borderRadius: '3px',
+        marginRight: '5px'
+      }}
+      onClick={setAsActive}
+    >
+      {sequences.map((sequence, idx) => {
+        return (
+          <SequenceThumbnailRow key={idx} sequence={sequence} step={step} />
+        );
+      })}
+    </div>
+  );
+}
+
+function SequenceThumbnailRow({ sequence, step }) {
+  return (
+    <div style={{ display: 'flex' }}>
+      {sequence.map((on, idx) => (
+        <div
+          key={idx}
+          style={{
+            width: '8px',
+            height: '3px',
+            borderRadius: '1px',
+            backgroundColor:
+              idx + 1 === step ? 'white' : on ? 'magenta' : '#650065',
+            margin: '0.5px'
+          }}
+        ></div>
+      ))}
+    </div>
   );
 }
 
