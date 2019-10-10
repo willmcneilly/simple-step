@@ -222,50 +222,56 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <PlayButton isPlaying={state.isPlaying} dispatch={dispatch} />
-        {state.sequenceArrayOrder.map(sequenceId => {
-          const sequenceData = state.sequenceArrayData[sequenceId];
-          return (
-            <SequenceArray
-              key={sequenceData.id}
-              label={sequenceData.label}
-              step={state.step}
-              sequence={sequenceData.sequence}
-              grouping={state.stepLength}
+        <div>
+          <PlayButton isPlaying={state.isPlaying} dispatch={dispatch} />
+          <div
+            style={{
+              display: 'flex',
+              marginLeft: '140px',
+              marginBottom: '40px'
+            }}
+          >
+            <SequenceSelection
               selectedSequence={state.selectedSequence}
-              setSequence={idx =>
-                dispatch({
-                  type: 'updateSequenceAtIndex',
-                  sequenceId: sequenceData.id,
-                  updateAtIndex: idx
-                })
-              }
+              sequenceData={state.sequenceArrayOrder.map(sequenceId => {
+                return state.sequenceArrayData[sequenceId].sequence;
+              })}
+              steps={state.steps}
+              dispatch={dispatch}
+              step={state.step}
             />
-          );
-        })}
-        <div
-          style={{
-            display: 'flex'
-          }}
-        >
-          <SequenceSelection
-            selectedSequence={state.selectedSequence}
-            sequenceData={state.sequenceArrayOrder.map(sequenceId => {
-              return state.sequenceArrayData[sequenceId].sequence;
-            })}
-            steps={state.steps}
-            dispatch={dispatch}
-            step={state.step}
-          />
-        </div>
+          </div>
+          {state.sequenceArrayOrder.map(sequenceId => {
+            const sequenceData = state.sequenceArrayData[sequenceId];
+            return (
+              <SequenceArray
+                key={sequenceData.id}
+                label={sequenceData.label}
+                step={state.step}
+                sequence={sequenceData.sequence}
+                grouping={state.stepLength}
+                selectedSequence={state.selectedSequence}
+                setSequence={idx =>
+                  dispatch({
+                    type: 'updateSequenceAtIndex',
+                    sequenceId: sequenceData.id,
+                    updateAtIndex: idx
+                  })
+                }
+              />
+            );
+          })}
 
-        <div style={{ display: 'flex', marginTop: '40px' }}>
-          <BPMAdjustment bpm={state.bpm} dispatch={dispatch} />
-          <StepLengthAdjustment
-            dispatch={dispatch}
-            stepLength={state.stepLength}
-          />
-          <StepAdjustment dispatch={dispatch} steps={state.steps} />
+          <div
+            style={{ display: 'flex', marginTop: '40px', marginLeft: '140px' }}
+          >
+            <BPMAdjustment bpm={state.bpm} dispatch={dispatch} />
+            <StepLengthAdjustment
+              dispatch={dispatch}
+              stepLength={state.stepLength}
+            />
+            <StepAdjustment dispatch={dispatch} steps={state.steps} />
+          </div>
         </div>
       </header>
     </div>
@@ -482,7 +488,7 @@ function SequenceThumbnailRow({ sequence, step }) {
         <div
           key={idx}
           style={{
-            width: '8px',
+            width: '9px',
             height: '3px',
             borderRadius: '1px',
             backgroundColor:
